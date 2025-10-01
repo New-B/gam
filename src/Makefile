@@ -8,20 +8,26 @@ ifdef dht
 	CFLAGS += -DDHT
 endif
 
-all: libgalloc.a 
-test: libgalloc.a lock_test example example-r worker master rw_test fence_test benchmark map_test gfunc_test
-build: libgalloc.a libgalloc.so 
+all: libgalloc.a libdsm.a
+test: libgalloc.a libdsm.a lock_test example example-r worker master rw_test fence_test benchmark map_test gfunc_test
+build: libgalloc.a libgalloc.so libdsm.a libdsm.so
 
-SRC = gfunc.cc ae.cc client.cc server.cc worker.cc gallocator.cc master.cc tcp.cc worker_handle.cc anet.cc rdma.cc util.cc zmalloc.cc log.cc slabs.cc workrequest.cc cache.cc directory.cc local_request.cc remote_request.cc pending_request.cc MurmurHash.cc logging.cc
-OBJ = gfunc.o ae.o client.o server.o worker.o gallocator.o master.o tcp.o worker_handle.o anet.o rdma.o util.o zmalloc.o log.o slabs.o workrequest.o cache.o directory.o remote_request.o local_request.o pending_request.o MurmurHash.o logging.o
+SRC = gfunc.cc ae.cc client.cc server.cc worker.cc gallocator.cc master.cc tcp.cc worker_handle.cc anet.cc rdma.cc util.cc zmalloc.cc log.cc slabs.cc workrequest.cc cache.cc directory.cc local_request.cc remote_request.cc pending_request.cc MurmurHash.cc logging.cc dsm.cc
+OBJ = gfunc.o ae.o client.o server.o worker.o gallocator.o master.o tcp.o worker_handle.o anet.o rdma.o util.o zmalloc.o log.o slabs.o workrequest.o cache.o directory.o remote_request.o local_request.o pending_request.o MurmurHash.o logging.o dsm.o
 
 libgalloc.so: $(SRC)
+	$(CPP) $(CFLAGS) $(INCLUDE) -fPIC -shared -o $@ $^ $(LIBS) 
+
+libdsm.so: $(SRC)
 	$(CPP) $(CFLAGS) $(INCLUDE) -fPIC -shared -o $@ $^ $(LIBS) 
 
 $(OBJ): %.o : %.cc
 	$(CPP) $< $(CFLAGS) $(INCLUDE) -g -c -o $@ 
 
 libgalloc.a: $(OBJ)
+	ar rcs $@ $^ 
+
+libdsm.a: $(OBJ)
 	ar rcs $@ $^ 
 
 benchmark: ../test/benchmark.cc
