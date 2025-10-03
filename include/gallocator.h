@@ -123,13 +123,48 @@ class GAllocFactory {
 #define MAX_GFUNCS 100
   static GFunc* gfuncs[MAX_GFUNCS];
 #endif
-  /*
-   * this function should be call in every thread
-   * in order to init some per-thread data
-   */
-  static GAlloc* CreateAllocator(const std::string& conf_file) {
-    return CreateAllocator(ParseConf(conf_file));
+  static void InitSystem(const std::string& conf_file) { //初始化系统
+    InitSystem(ParseConf(conf_file)); //解析配置文件并初始化系统
   }
+  static void InitSystem(const Conf* c = nullptr) { //初始化系统
+    lock.lock(); //加锁，确保在同一时间只有一个线程可以进入这段代码，从而保护共享资源
+    //主要用于保护对静态成员变量conf、worker和master的访问，确保线程安全
+    if(c) {  //如果传入了非空的conf,则设置配置
+      if(!conf) {	//如果配置不存在,即类的共享静态变量conf尚未被初始化
+        conf = c;//设置配置
+      } else {
+        epicLog(LOG_INFO, "NOTICE: Conf already exist %lx", conf); //记录日志
+      }
+    } else {//如果没有传入conf
+      if(!conf) {//而且类的共享静态变量conf也未被初始化
+        epicLog(LOG_FATAL, "Must provide conf for the first time"); //记录致命错误日志
+      }
+    }
+
+    if(conf->is_master) { //如果配置为主节点
+      if(!master) master = MasterFactory::CreateServer(*conf); //创建master
+    }
+    if(!worker) { //如果worker不存在
+      worker = WorkerFactory::CreateServer(*conf); //创建worker
+    }
+    lock.unlock(); //解锁
+  }
+
+  	// 创建分配器
+	static GAlloc* CreateAllocator() {
+  //	lock.lock(); // 加锁
+    GAlloc* ret = new GAlloc(worker);
+  //	lock.unlock(); // 解锁
+    return ret;
+  }
+
+  // /*
+  //  * this function should be call in every thread
+  //  * in order to init some per-thread data
+  //  */
+  // static GAlloc* CreateAllocator(const std::string& conf_file) {
+  //   return CreateAllocator(ParseConf(conf_file));
+  // }
 
   static const Conf* InitConf() {
     lock.lock();
@@ -139,54 +174,54 @@ class GAllocFactory {
     return ret;
   }
 
-  //need to call for every thread
-  static GAlloc* CreateAllocator(const Conf* c = nullptr) {
-    lock.lock();
-    if (c) {
-      if (!conf) {
-        conf = c;
-      } else {
-        epicLog(LOG_INFO, "NOTICE: Conf already exist %lx", conf);
-      }
-    } else {
-      if (!conf) {
-        epicLog(LOG_FATAL, "Must provide conf for the first time");
-      }
-    }
+  // //need to call for every thread
+  // static GAlloc* CreateAllocator(const Conf* c = nullptr) {
+  //   lock.lock();
+  //   if (c) {
+  //     if (!conf) {
+  //       conf = c;
+  //     } else {
+  //       epicLog(LOG_INFO, "NOTICE: Conf already exist %lx", conf);
+  //     }
+  //   } else {
+  //     if (!conf) {
+  //       epicLog(LOG_FATAL, "Must provide conf for the first time");
+  //     }
+  //   }
 
-    if (conf->is_master) {
-      if (!master)
-        master = MasterFactory::CreateServer(*conf);
-    }
-    if (!worker) {
-      worker = WorkerFactory::CreateServer(*conf);
-    }
-    GAlloc* ret = new GAlloc(worker);
-    lock.unlock();
-    return ret;
-  }
+  //   if (conf->is_master) {
+  //     if (!master)
+  //       master = MasterFactory::CreateServer(*conf);
+  //   }
+  //   if (!worker) {
+  //     worker = WorkerFactory::CreateServer(*conf);
+  //   }
+  //   GAlloc* ret = new GAlloc(worker);
+  //   lock.unlock();
+  //   return ret;
+  // }
 
-  //need to call for every thread
-  static GAlloc* CreateAllocator(const Conf& c) {
-    lock.lock();
-    if (!conf) {
-      Conf* lc = new Conf();
-      *lc = c;
-      conf = lc;
-    } else {
-      epicLog(LOG_INFO, "Conf already exist %lx", conf);
-    }
-    if (conf->is_master) {
-      if (!master)
-        master = MasterFactory::CreateServer(*conf);
-    }
-    if (!worker) {
-      worker = WorkerFactory::CreateServer(*conf);
-    }
-    GAlloc* ret = new GAlloc(worker);
-    lock.unlock();
-    return ret;
-  }
+  // //need to call for every thread
+  // static GAlloc* CreateAllocator(const Conf& c) {
+  //   lock.lock();
+  //   if (!conf) {
+  //     Conf* lc = new Conf();
+  //     *lc = c;
+  //     conf = lc;
+  //   } else {
+  //     epicLog(LOG_INFO, "Conf already exist %lx", conf);
+  //   }
+  //   if (conf->is_master) {
+  //     if (!master)
+  //       master = MasterFactory::CreateServer(*conf);
+  //   }
+  //   if (!worker) {
+  //     worker = WorkerFactory::CreateServer(*conf);
+  //   }
+  //   GAlloc* ret = new GAlloc(worker);
+  //   lock.unlock();
+  //   return ret;
+  // }
 
   static void SetConf(Conf* c) {
     lock.lock();

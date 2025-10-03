@@ -92,6 +92,7 @@ typedef std::underlying_type<Work>::type wtype;
 typedef std::underlying_type<Status>::type stype;
 
 typedef int Flag;
+typedef int Node;
 
 #define REMOTE 1
 #define RANDOM (1 << 1)

@@ -37,7 +37,7 @@ void dsm_init(const Conf* c){
     std::lock_guard<std::mutex> guard(init_lock);
     GAllocFactory::InitSystem(c);
     sleep(10);
-    no_thread = c->no_thread; //获取线程数
+    no_thread = c->maxthreads; //获取线程数
     alloc = new GAlloc*[no_thread];
     for (int i = 0; i < no_thread; ++i) {
         alloc[i] = GAllocFactory::CreateAllocator();
