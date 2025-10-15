@@ -132,6 +132,7 @@ class GAllocFactory {
     if(c) {  //如果传入了非空的conf,则设置配置
       if(!conf) {	//如果配置不存在,即类的共享静态变量conf尚未被初始化
         conf = c;//设置配置
+        epicLog(LOG_INFO, "Set conf"); //记录日志
       } else {
         epicLog(LOG_INFO, "NOTICE: Conf already exist %lx", conf); //记录日志
       }
@@ -142,9 +143,11 @@ class GAllocFactory {
     }
 
     if(conf->is_master) { //如果配置为主节点
+      epicLog(LOG_INFO, "start master"); //记录日志
       if(!master) master = MasterFactory::CreateServer(*conf); //创建master
     }
     if(!worker) { //如果worker不存在
+      epicLog(LOG_INFO, "start worker"); //记录日志
       worker = WorkerFactory::CreateServer(*conf); //创建worker
     }
     lock.unlock(); //解锁
